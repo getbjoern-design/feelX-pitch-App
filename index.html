@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>feelX | soulY – App Simulator</title>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   DESIGN TOKENS
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  --brand-primary: #C8A97E;
+  --brand-secondary: #8FB8AD;
+  --brand-dark: #1A1814;
+  --brand-surface: #221F1C;
+  --brand-surface-2: #2C2924;
+  --brand-border: rgba(200, 169, 126, 0.15);
+  --text-primary: #F2EDE8;
+  --text-muted: #A09890;
+  --text-faint: #5C5650;
+  --status-green: #6DAF85;
+  --status-amber: #E8A547;
+  --status-red: #D96B6B;
+  --status-blue: #6B9ED6;
+  --space-1:.25rem; --space-2:.5rem; --space-3:.75rem; --space-4:1rem;
+  --space-6:1.5rem; --space-8:2rem; --space-10:2.5rem; --space-12:3rem; --space-16:4rem;
+  --text-xs: clamp(.75rem,.7rem + .25vw,.875rem);
+  --text-sm: clamp(.875rem,.8rem + .35vw,1rem);
+  --text-base: clamp(1rem,.95rem + .25vw,1.125rem);
+  --text-lg: clamp(1.125rem,1rem + .75vw,1.5rem);
+  --text-xl: clamp(1.5rem,1.2rem + 1.25vw,2.25rem);
+  --radius-sm:.375rem; --radius-md:.5rem; --radius-lg:.75rem; --radius-xl:1.25rem; --radius-full:9999px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.3);
+  --shadow-md: 0 4px 16px rgba(0,0,0,.4);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,.5);
+  --shadow-gold: 0 0 24px rgba(200,169,126,.15);
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --bg-canvas: #0E0D0B;
+}
+[data-theme="light"] {
+  --brand-dark: #F7F3EE;
+  --brand-surface: #FFFFFF;
+  --brand-surface-2: #FBF7F1;
+  --brand-border: rgba(160, 130, 90, 0.2);
+  --text-primary: #2A2520;
+  --text-muted: #6B6259;
+  --text-faint: #A89E92;
+  --bg-canvas: #EDE6DC;
+  --shadow-md: 0 4px 16px rgba(120,100,70,.12);
+  --shadow-lg: 0 12px 40px rgba(120,100,70,.18);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html { -webkit-text-size-adjust:100%; }
+body {
+  font-family:'Satoshi', -apple-system, sans-serif;
+  background:var(--bg-canvas);
+  color:var(--text-primary);
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+  transition: background .4s var(--ease), color .4s var(--ease);
+}
+.tnum { font-variant-numeric: tabular-nums lining-nums; }
+button { font-family:inherit; cursor:pointer; border:none; background:none; color:inherit; }
+::-webkit-scrollbar { width:8px; height:8px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--brand-border); border-radius:var(--radius-full); }
+
+/* Atmospheric canvas grain + vignette */
+body::before {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(1200px 700px at 78% -10%, rgba(200,169,126,.08), transparent 60%),
+    radial-gradient(900px 600px at 8% 110%, rgba(143,184,173,.06), transparent 55%);
+}
+body::after {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.035;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   KEYFRAMES
+   ═══════════════════════════════════════════════════════════════ */
+@keyframes fadeInUp { from{opacity:0;transform:translateY(16px);} to{opacity:1;transform:translateY(0);} }
+@keyframes slideInRight { from{opacity:0;transform:translateX(24px);} to{opacity:1;transform:translateX(0);} }
+@keyframes pulse-gold { 0%,100%{box-shadow:0 0 0 0 rgba(200,169,126,.4);} 50%{box-shadow:0 0 0 8px rgba(200,169,126,0);} }
+@keyframes confetti-fall { 0%{transform:translateY(-10px) rotate(0);opacity:1;} 100%{transform:translateY(320px) rotate(720deg);opacity:0;} }
+@keyframes countUp { from{opacity:0;transform:translateY(4px);} to{opacity:1;transform:translateY(0);} }
+@keyframes splashLogo { from{opacity:0;transform:scale(.92);} to{opacity:1;transform:scale(1);} }
+@keyframes splashLine { from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:translateY(0);} }
+@keyframes btnPulse { 0%,100%{box-shadow:var(--shadow-gold);} 50%{box-shadow:0 0 36px rgba(200,169,126,.35);} }
+@keyframes float { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-6px);} }
+@keyframes drawLine { from{stroke-dashoffset:1000;} to{stroke-dashoffset:0;} }
+
+/* ═══════════════════════════════════════════════════════════════
+   SPLASH
+   ═══════════════════════════════════════════════════════════════ */
+#splash-screen {
+  position:fixed; inset:0; z-index:1000; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:var(--space-8);
+  background:radial-gradient(900px 600px at 50% 40%, #211D18, #0B0A08 70%);
+  transition:opacity .7s var(--ease), visibility .7s var(--ease);
+}
+#splash-screen.hidden { opacity:0; visibility:hidden; }
+.splash-particles { position:absolute; inset:0; overflow:hidden; }
+.splash-particles span {
+  position:absolute; width:3px; height:3px; border-radius:50%;
+  background:var(--brand-primary); opacity:.5; animation:float 6s ease-in-out infinite;
+}
+.splash-logo {
+  font-size:clamp(2.2rem,6vw,4rem); font-weight:700; letter-spacing:-.02em;
+  animation:splashLogo .7s var(--ease) both; position:relative; z-index:2;
+}
+.splash-tag {
+  color:var(--text-muted); font-size:var(--text-sm); letter-spacing:.18em; text-transform:uppercase;
+  animation:splashLine .6s var(--ease) .3s both; position:relative; z-index:2;
+}
+.splash-btn {
+  margin-top:var(--space-4); padding:var(--space-3) var(--space-8);
+  background:var(--brand-primary); color:#1A1410; font-weight:700; border-radius:var(--radius-full);
+  font-size:var(--text-sm); animation:splashLine .6s var(--ease) .5s both, btnPulse 2.6s ease-in-out 1.1s infinite;
+  position:relative; z-index:2; transition:transform .18s var(--ease);
+}
+.splash-btn:hover { transform:translateY(-2px) scale(1.02); }
+.pipe { color:var(--brand-primary); font-weight:300; margin:0 .12em; }
+
+/* ═══════════════════════════════════════════════════════════════
+   SIMULATOR SHELL
+   ═══════════════════════════════════════════════════════════════ */
+#simulator-wrapper { position:relative; z-index:1; min-height:100vh; padding-bottom:84px; }
+.sim-header {
+  position:sticky; top:0; z-index:50;
+  display:flex; align-items:center; gap:var(--space-6);
+  padding:var(--space-4) var(--space-8);
+  background:color-mix(in srgb, var(--bg-canvas) 82%, transparent);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--brand-border);
+}
+.sim-logo { font-size:var(--text-base); font-weight:700; letter-spacing:-.01em; white-space:nowrap; }
+.tab-nav { display:flex; gap:var(--space-2); margin:0 auto; background:var(--brand-surface); padding:var(--space-1); border-radius:var(--radius-full); border:1px solid var(--brand-border); }
+.tab-nav button {
+  display:flex; align-items:center; gap:var(--space-2); padding:var(--space-2) var(--space-4);
+  border-radius:var(--radius-full); color:var(--text-muted); font-size:var(--text-sm); font-weight:500;
+  transition:all .18s var(--ease); white-space:nowrap;
+}
+.tab-nav button svg { width:16px; height:16px; }
+.tab-nav button.active { background:var(--brand-primary); color:#1A1410; box-shadow:var(--shadow-gold); }
+.tab-nav button:not(.active):hover { color:var(--text-primary); background:var(--brand-surface-2); }
+.header-actions { display:flex; gap:var(--space-2); align-items:center; }
+.icon-btn {
+  width:38px; height:38px; display:grid; place-items:center; border-radius:var(--radius-md);
+  background:var(--brand-surface); border:1px solid var(--brand-border); color:var(--text-muted);
+  transition:all .18s var(--ease);
+}
+.icon-btn:hover { color:var(--brand-primary); border-color:var(--brand-primary); }
+.icon-btn svg { width:18px; height:18px; }
+
+/* View transitions */
+.view { display:none; animation:fadeInUp .5s var(--ease); }
+.view.active { display:block; }
+
+/* ═══════════════════════════════════════════════════════════════
+   PHONE FRAME
+   ═══════════════════════════════════════════════════════════════ */
+.phone-stage { display:flex; justify-content:center; padding:var(--space-10) var(--space-4); }
+.phone-frame {
+  width:390px; height:812px; max-height:calc(100vh - 220px);
+  background:var(--brand-dark); border-radius:46px; position:relative;
+  border:1px solid var(--brand-border); box-shadow:var(--shadow-lg), inset 0 0 0 8px #0a0908;
+  overflow:hidden; display:flex; flex-direction:column;
+}
+[data-theme="light"] .phone-frame { box-shadow:var(--shadow-lg), inset 0 0 0 8px #d8cfc0; }
+.dynamic-island {
+  position:absolute; top:12px; left:50%; transform:translateX(-50%);
+  width:108px; height:30px; background:#000; border-radius:var(--radius-full); z-index:30;
+}
+.status-bar {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:14px 28px 6px; font-size:.78rem; font-weight:600; z-index:20;
+}
+.status-bar .icons { display:flex; gap:5px; align-items:center; }
+.status-bar svg { width:15px; height:15px; }
+.screen-content { flex:1; overflow-y:auto; overflow-x:hidden; padding:var(--space-2) var(--space-4) var(--space-4); scroll-behavior:smooth; }
+.app-screen { display:none; animation:fadeInUp .4s var(--ease); }
+.app-screen.active { display:block; }
+
+.tab-bar {
+  display:flex; justify-content:space-around; align-items:center;
+  padding:var(--space-2) var(--space-2) var(--space-4);
+  background:color-mix(in srgb, var(--brand-dark) 88%, transparent);
+  backdrop-filter:blur(12px); border-top:1px solid var(--brand-border);
+}
+.tab-bar button { display:flex; flex-direction:column; align-items:center; gap:3px; color:var(--text-faint); font-size:.62rem; font-weight:500; padding:var(--space-1); transition:color .18s var(--ease); }
+.tab-bar button svg { width:21px; height:21px; }
+.tab-bar button.active { color:var(--brand-primary); }
+
+/* App content blocks */
+.app-header { display:flex; justify-content:space-between; align-items:center; padding:var(--space-3) var(--space-1) var(--space-4); }
+.app-header .logo { font-size:var(--text-sm); font-weight:700; }
+.avatar {
+  width:38px; height:38px; border-radius:var(--radius-full); display:grid; place-items:center;
+  background:linear-gradient(135deg, var(--brand-primary), #a98a5e); color:#1A1410; font-weight:700; font-size:.85rem;
+}
+.greeting { font-size:1.4rem; font-weight:700; letter-spacing:-.02em; margin-bottom:var(--space-1); }
+.greeting-sub { color:var(--text-muted); font-size:var(--text-xs); margin-bottom:var(--space-6); line-height:1.45; }
+
+.card {
+  background:var(--brand-surface); border:1px solid var(--brand-border);
+  border-radius:var(--radius-lg); padding:var(--space-4); transition:all .18s var(--ease);
+}
+.card.hoverable:hover { box-shadow:var(--shadow-gold); border-color:rgba(200,169,126,.35); }
+
+.quick-row { display:flex; gap:var(--space-3); overflow-x:auto; padding-bottom:var(--space-2); margin-bottom:var(--space-6); scrollbar-width:none; }
+.quick-row::-webkit-scrollbar { display:none; }
+.quick-card {
+  min-width:138px; flex-shrink:0; background:var(--brand-surface); border:1px solid var(--brand-border);
+  border-radius:var(--radius-lg); padding:var(--space-4); display:flex; flex-direction:column; gap:var(--space-2);
+  transition:all .18s var(--ease); cursor:pointer; text-align:left;
+}
+.quick-card:hover { box-shadow:var(--shadow-gold); transform:translateY(-3px); border-color:rgba(200,169,126,.35); }
+.quick-card .qc-icon { width:34px; height:34px; border-radius:var(--radius-md); display:grid; place-items:center; background:var(--brand-surface-2); color:var(--brand-primary); }
+.quick-card .qc-icon svg { width:18px; height:18px; }
+.quick-card .qc-title { font-size:var(--text-xs); font-weight:600; }
+.quick-card .qc-sub { font-size:.66rem; color:var(--text-muted); }
+.gold-cta { background:var(--brand-primary)!important; }
+.gold-cta .qc-icon { background:rgba(26,20,16,.12); color:#1A1410; }
+.gold-cta .qc-title, .gold-cta .qc-sub { color:#1A1410; }
+
+.badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:var(--radius-full); font-size:.66rem; font-weight:600; }
+.badge-green { background:rgba(109,175,133,.16); color:var(--status-green); }
+.badge-gold { background:rgba(200,169,126,.16); color:var(--brand-primary); }
+.badge-amber { background:rgba(232,165,71,.16); color:var(--status-amber); }
+.badge-blue { background:rgba(107,158,214,.16); color:var(--status-blue); }
+.badge-red { background:rgba(217,107,107,.16); color:var(--status-red); }
+
+.section-title { font-size:var(--text-xs); font-weight:600; color:var(--brand-primary); text-transform:uppercase; letter-spacing:.1em; margin:var(--space-6) 0 var(--space-3); }
+
+/* Membership banner */
+.member-banner {
+  background:linear-gradient(135deg, var(--brand-surface-2), var(--brand-surface));
+  border:1px solid rgba(200,169,126,.28); border-radius:var(--radius-lg); padding:var(--space-4);
+  position:relative; overflow:hidden; margin-bottom:var(--space-2);
+}
+.member-banner::before { content:''; position:absolute; right:-30px; top:-30px; width:120px; height:120px; border-radius:50%; background:radial-gradient(circle, rgba(200,169,126,.18), transparent 70%); }
+.progress-track { height:6px; background:var(--brand-surface-2); border-radius:var(--radius-full); overflow:hidden; margin-top:var(--space-2); }
+[data-theme="light"] .progress-track { background:rgba(0,0,0,.07); }
+.progress-fill { height:100%; background:var(--brand-primary); border-radius:var(--radius-full); transition:width 1s var(--ease); }
+
+.treatment-card { display:flex; gap:var(--space-3); align-items:center; margin-bottom:var(--space-3); }
+.treatment-card .t-avatar { width:42px; height:42px; border-radius:var(--radius-md); background:linear-gradient(135deg,#3a3530,#2a2520); display:grid; place-items:center; color:var(--brand-secondary); flex-shrink:0; }
+.treatment-card .t-avatar svg { width:20px; height:20px; }
+.treatment-card .t-body { flex:1; min-width:0; }
+.treatment-card .t-name { font-size:var(--text-sm); font-weight:600; }
+.treatment-card .t-meta { font-size:.7rem; color:var(--text-muted); }
+
+/* ── Booking wizard ── */
+.wizard-progress { display:flex; gap:var(--space-2); margin:var(--space-2) 0 var(--space-6); }
+.wizard-progress .wp-step { flex:1; height:4px; background:var(--brand-surface-2); border-radius:var(--radius-full); overflow:hidden; }
+.wizard-progress .wp-step::after { content:''; display:block; height:100%; width:0; background:var(--brand-primary); transition:width .5s var(--ease); }
+.wizard-progress .wp-step.done::after, .wizard-progress .wp-step.current::after { width:100%; }
+.wizard-step { display:none; animation:fadeInUp .4s var(--ease); }
+.wizard-step.active { display:block; }
+.step-title { font-size:1.15rem; font-weight:700; margin-bottom:var(--space-1); }
+.step-sub { font-size:var(--text-xs); color:var(--text-muted); margin-bottom:var(--space-4); }
+
+.chip-row { display:flex; gap:var(--space-2); overflow-x:auto; padding-bottom:var(--space-2); margin-bottom:var(--space-4); scrollbar-width:none; }
+.chip-row::-webkit-scrollbar { display:none; }
+.chip { flex-shrink:0; padding:var(--space-2) var(--space-3); border-radius:var(--radius-full); background:var(--brand-surface); border:1px solid var(--brand-border); font-size:.72rem; font-weight:500; color:var(--text-muted); transition:all .18s var(--ease); }
+.chip.active { background:var(--brand-primary); color:#1A1410; border-color:var(--brand-primary); }
+
+.service-card { margin-bottom:var(--space-3); cursor:pointer; }
+.service-card.selected { border-color:var(--brand-primary); box-shadow:var(--shadow-gold); }
+.service-card .sc-top { display:flex; justify-content:space-between; align-items:flex-start; gap:var(--space-2); }
+.service-card .sc-name { font-size:var(--text-sm); font-weight:600; display:flex; align-items:center; gap:6px; }
+.service-card .sc-meta { font-size:.7rem; color:var(--text-muted); margin-top:2px; }
+.price-line { display:flex; align-items:center; gap:var(--space-2); margin-top:var(--space-3); }
+.price-old { text-decoration:line-through; color:var(--text-faint); font-size:.78rem; }
+.price-member { color:var(--brand-primary); font-weight:700; font-size:var(--text-sm); }
+
+/* Slot grid */
+.location-select { display:flex; align-items:center; justify-content:space-between; padding:var(--space-3); background:var(--brand-surface); border:1px solid var(--brand-border); border-radius:var(--radius-md); margin-bottom:var(--space-4); font-size:var(--text-sm); font-weight:500; }
+.week-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:var(--space-1); margin-bottom:var(--space-4); }
+.day-cell { text-align:center; padding:var(--space-2) 0; border-radius:var(--radius-md); cursor:pointer; transition:all .18s var(--ease); }
+.day-cell .dc-day { font-size:.6rem; color:var(--text-faint); text-transform:uppercase; }
+.day-cell .dc-num { font-size:var(--text-sm); font-weight:600; margin-top:2px; }
+.day-cell.today { background:var(--brand-surface-2); }
+.day-cell.sel { background:var(--brand-primary); color:#1A1410; }
+.day-cell.sel .dc-day { color:rgba(26,20,16,.6); }
+.slots-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:var(--space-2); }
+.slot-btn { padding:var(--space-3) 0; border-radius:var(--radius-md); background:var(--brand-surface); border:1px solid var(--brand-border); font-size:.82rem; font-weight:600; transition:all .18s var(--ease); }
+.slot-btn:hover:not(.booked) { border-color:var(--brand-primary); }
+.slot-btn.sel { background:var(--brand-primary); color:#1A1410; border-color:var(--brand-primary); }
+.slot-btn.booked { color:var(--text-faint); cursor:not-allowed; opacity:.5; text-decoration:line-through; }
+.walkin-alt { margin-top:var(--space-4); border-style:dashed; border-color:rgba(143,184,173,.4); }
+.walkin-alt .badge { background:rgba(143,184,173,.16); color:var(--brand-secondary); }
+
+/* Confirmation */
+.summary-row { display:flex; justify-content:space-between; padding:var(--space-2) 0; border-bottom:1px solid var(--brand-border); font-size:var(--text-sm); }
+.summary-row:last-child { border:none; }
+.summary-row .sr-label { color:var(--text-muted); }
+.summary-row .sr-val { font-weight:600; }
+.pay-toggle { display:flex; gap:var(--space-2); margin:var(--space-4) 0; }
+.pay-toggle button { flex:1; padding:var(--space-3); border-radius:var(--radius-md); background:var(--brand-surface); border:1px solid var(--brand-border); font-size:var(--text-sm); font-weight:600; color:var(--text-muted); transition:all .18s var(--ease); }
+.pay-toggle button.active { background:var(--brand-primary); color:#1A1410; border-color:var(--brand-primary); }
+.info-banner { display:flex; gap:var(--space-2); align-items:center; padding:var(--space-3); border-radius:var(--radius-md); font-size:.74rem; margin:var(--space-4) 0; }
+.info-banner svg { width:18px; height:18px; flex-shrink:0; }
+.info-green { background:rgba(109,175,133,.12); color:var(--status-green); }
+
+.btn-primary { width:100%; padding:var(--space-4); background:var(--brand-primary); color:#1A1410; font-weight:700; border-radius:var(--radius-md); font-size:var(--text-sm); transition:all .18s var(--ease); }
+.btn-primary:hover { transform:translateY(-2px); box-shadow:var(--shadow-gold); }
+.btn-primary:disabled { opacity:.4; cursor:not-allowed; transform:none; }
+.btn-ghost { width:100%; padding:var(--space-3); background:var(--brand-surface); border:1px solid var(--brand-border); color:var(--text-muted); font-weight:600; border-radius:var(--radius-md); font-size:var(--text-sm); transition:all .18s var(--ease); }
+.btn-ghost:hover { color:var(--text-primary); }
+.wizard-actions { display:flex; gap:var(--space-2); margin-top:var(--space-4); }
+
+.success-screen { text-align:center; padding:var(--space-12) var(--space-4); animation:fadeInUp .5s var(--ease); }
+.success-icon { width:72px; height:72px; border-radius:50%; background:rgba(109,175,133,.16); color:var(--status-green); display:grid; place-items:center; margin:0 auto var(--space-4); }
+.success-icon svg { width:36px; height:36px; }
+
+/* History timeline */
+.timeline-item { position:relative; padding-left:var(--space-6); padding-bottom:var(--space-4); }
+.timeline-item::before { content:''; position:absolute; left:6px; top:6px; width:10px; height:10px; border-radius:50%; background:var(--brand-primary); }
+.timeline-item::after { content:''; position:absolute; left:10px; top:18px; bottom:0; width:1px; background:var(--brand-border); }
+.timeline-item:last-child::after { display:none; }
+.before-after { position:relative; width:100%; height:200px; border-radius:var(--radius-md); overflow:hidden; margin-top:var(--space-3); user-select:none; cursor:ew-resize; }
+.ba-img { position:absolute; inset:0; background-size:cover; background-position:center; }
+.ba-before { background:linear-gradient(135deg,#3a342d,#2a2520); filter:grayscale(1) brightness(.85); }
+.ba-before::after, .ba-after::after { content:attr(data-label); position:absolute; bottom:8px; padding:3px 9px; border-radius:var(--radius-full); font-size:.62rem; font-weight:600; background:rgba(0,0,0,.5); color:#fff; }
+.ba-before::after { left:8px; }
+.ba-after { background:linear-gradient(135deg,#4a443a,#3a342d); filter:brightness(1.18) saturate(1.1); clip-path:inset(0 50% 0 0); }
+.ba-after::after { right:8px; content:'Nachher'; }
+.ba-handle { position:absolute; top:0; bottom:0; left:50%; width:3px; background:var(--brand-primary); z-index:5; cursor:ew-resize; }
+.ba-handle::after { content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:30px; height:30px; border-radius:50%; background:var(--brand-primary); box-shadow:var(--shadow-md); }
+.ba-handle .arrows { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:6; color:#1A1410; }
+.ba-handle .arrows svg { width:16px; height:16px; }
+.ba-badge { position:absolute; top:8px; right:8px; z-index:6; }
+
+/* Wallet */
+.wallet-card {
+  position:relative; border-radius:var(--radius-xl); padding:var(--space-6) var(--space-4);
+  background:linear-gradient(135deg,#2a2520,#1f1b17);
+  border:1px solid transparent; background-clip:padding-box; overflow:hidden;
+  transform-style:preserve-3d; transition:transform .2s var(--ease);
+}
+.wallet-card::before { content:''; position:absolute; inset:0; border-radius:var(--radius-xl); padding:1px; background:linear-gradient(135deg, var(--brand-primary), transparent 40%, transparent 60%, var(--brand-secondary)); -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask-composite:exclude; pointer-events:none; }
+.wallet-card::after { content:''; position:absolute; right:-40px; top:-40px; width:160px; height:160px; border-radius:50%; background:radial-gradient(circle, rgba(200,169,126,.2), transparent 70%); }
+.wallet-brand { font-size:var(--text-sm); font-weight:700; letter-spacing:.04em; margin-bottom:var(--space-6); }
+.wallet-grid { display:flex; justify-content:space-between; align-items:flex-end; }
+.wallet-balance { font-size:1.9rem; font-weight:700; letter-spacing:-.02em; }
+.wallet-label { font-size:.66rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.08em; }
+.wallet-billing { margin-top:var(--space-6); padding-top:var(--space-3); border-top:1px solid var(--brand-border); font-size:.72rem; color:var(--text-muted); }
+
+.txn { display:flex; justify-content:space-between; align-items:center; padding:var(--space-3) 0; border-bottom:1px solid var(--brand-border); }
+.txn:last-child { border:none; }
+.txn-label { font-size:var(--text-sm); font-weight:500; }
+.txn-date { font-size:.66rem; color:var(--text-faint); }
+.txn-amt { font-weight:700; font-size:var(--text-sm); }
+.txn-amt.credit { color:var(--status-green); }
+.txn-amt.debit { color:var(--status-amber); }
+.savings-nudge { background:linear-gradient(135deg, rgba(143,184,173,.14), rgba(200,169,126,.08)); border:1px solid rgba(143,184,173,.3); border-radius:var(--radius-lg); padding:var(--space-4); text-align:center; margin:var(--space-4) 0; }
+.savings-nudge .sn-amt { font-size:1.4rem; font-weight:700; color:var(--brand-secondary); }
+.wallet-actions { display:flex; gap:var(--space-2); margin-top:var(--space-2); }
+.wallet-actions button { flex:1; }
+
+/* ═══════════════════════════════════════════════════════════════
+   STAFF DASHBOARD
+   ═══════════════════════════════════════════════════════════════ */
+.staff-layout { display:grid; grid-template-columns:240px 1fr; min-height:calc(100vh - 150px); }
+.sidebar { border-right:1px solid var(--brand-border); padding:var(--space-6) var(--space-4); display:flex; flex-direction:column; gap:var(--space-1); position:sticky; top:71px; height:fit-content; }
+.sidebar .sb-logo { font-size:var(--text-base); font-weight:700; padding:0 var(--space-2) var(--space-4); }
+.sidebar hr { border:none; border-top:1px solid var(--brand-border); margin:var(--space-3) 0; }
+.sb-item { display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3); border-radius:var(--radius-md); color:var(--text-muted); font-size:var(--text-sm); font-weight:500; transition:all .18s var(--ease); width:100%; text-align:left; }
+.sb-item svg { width:18px; height:18px; }
+.sb-item.active { background:var(--brand-surface); color:var(--brand-primary); }
+.sb-item:not(.active):hover { background:var(--brand-surface); color:var(--text-primary); }
+.sb-user { margin-top:var(--space-4); padding:var(--space-3); background:var(--brand-surface); border-radius:var(--radius-md); }
+.sb-user .su-name { font-size:var(--text-sm); font-weight:600; }
+.sb-user .su-loc { font-size:.66rem; color:var(--text-muted); }
+
+.main-content { padding:var(--space-8); position:relative; }
+.staff-screen { display:none; animation:fadeInUp .4s var(--ease); }
+.staff-screen.active { display:block; }
+.page-title { font-size:var(--text-xl); font-weight:700; letter-spacing:-.02em; margin-bottom:var(--space-1); }
+.page-sub { color:var(--text-muted); font-size:var(--text-sm); margin-bottom:var(--space-6); }
+
+.kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:var(--space-4); margin-bottom:var(--space-8); }
+.kpi-card { background:var(--brand-surface); border:1px solid var(--brand-border); border-radius:var(--radius-lg); padding:var(--space-4); transition:all .18s var(--ease); }
+.kpi-card:hover { box-shadow:var(--shadow-gold); border-color:rgba(200,169,126,.3); }
+.kpi-label { font-size:.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.06em; }
+.kpi-value { font-size:1.9rem; font-weight:700; letter-spacing:-.02em; margin:var(--space-1) 0; }
+.kpi-delta { font-size:.7rem; display:flex; align-items:center; gap:4px; }
+.kpi-delta svg { width:13px; height:13px; }
+.kpi-up { color:var(--status-green); }
+.kpi-bar { height:6px; background:var(--brand-surface-2); border-radius:var(--radius-full); overflow:hidden; margin-top:var(--space-2); }
+.kpi-bar div { height:100%; background:var(--brand-primary); border-radius:var(--radius-full); width:0; transition:width 1.2s var(--ease); }
+
+.dash-grid { display:grid; grid-template-columns:1fr 300px; gap:var(--space-6); }
+.timeline-cal { background:var(--brand-surface); border:1px solid var(--brand-border); border-radius:var(--radius-lg); padding:var(--space-4); overflow-x:auto; }
+.cal-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-4); }
+.cal-head h3 { font-size:var(--text-base); font-weight:600; }
+.cal-legend { display:flex; gap:var(--space-3); flex-wrap:wrap; font-size:.66rem; color:var(--text-muted); }
+.cal-legend span { display:flex; align-items:center; gap:4px; }
+.cal-legend .dot { width:9px; height:9px; border-radius:3px; }
+.swimlane { min-width:680px; }
+.time-axis { display:grid; grid-template-columns:90px 1fr; font-size:.6rem; color:var(--text-faint); margin-bottom:var(--space-2); }
+.time-ticks { display:grid; grid-template-columns:repeat(8,1fr); }
+.lane { display:grid; grid-template-columns:90px 1fr; align-items:center; margin-bottom:var(--space-3); }
+.lane-name { font-size:var(--text-xs); font-weight:600; color:var(--text-muted); }
+.lane-track { position:relative; height:42px; background:var(--brand-surface-2); border-radius:var(--radius-md); }
+.appt { position:absolute; top:4px; height:34px; border-radius:var(--radius-sm); padding:0 var(--space-2); display:flex; flex-direction:column; justify-content:center; cursor:pointer; overflow:hidden; transition:all .18s var(--ease); font-size:.62rem; }
+.appt:hover { transform:translateY(-1px); filter:brightness(1.1); }
+.appt .a-name { font-weight:700; white-space:nowrap; }
+.appt .a-treat { opacity:.85; white-space:nowrap; }
+.appt.booked { background:rgba(107,158,214,.2); border:1px solid var(--status-blue); color:var(--status-blue); }
+.appt.confirmed { background:rgba(109,175,133,.2); border:1px solid var(--status-green); color:var(--status-green); }
+.appt.active { background:rgba(200,169,126,.25); border:1px solid var(--brand-primary); color:var(--brand-primary); animation:pulse-gold 2s infinite; }
+.appt.completed { background:var(--brand-surface); border:1px solid var(--brand-border); color:var(--text-faint); }
+.appt.noshow { background:rgba(217,107,107,.18); border:1px solid var(--status-red); color:var(--status-red); }
+
+.waitlist-card { background:var(--brand-surface); border:1px solid var(--brand-border); border-radius:var(--radius-lg); padding:var(--space-4); height:fit-content; }
+.waitlist-card h3 { font-size:var(--text-base); font-weight:600; margin-bottom:var(--space-1); }
+.wl-item { display:flex; gap:var(--space-3); align-items:center; padding:var(--space-3) 0; border-bottom:1px solid var(--brand-border); animation:slideInRight .3s var(--ease); }
+.wl-num { width:26px; height:26px; border-radius:var(--radius-full); background:var(--brand-surface-2); display:grid; place-items:center; font-size:.7rem; font-weight:700; color:var(--brand-primary); flex-shrink:0; }
+.wl-body { flex:1; }
+.wl-name { font-size:var(--text-sm); font-weight:600; }
+.wl-meta { font-size:.66rem; color:var(--text-muted); }
+
+/* Slide-in patient panel */
+.patient-panel { position:fixed; top:0; right:0; bottom:0; width:380px; max-width:90vw; background:var(--brand-surface); border-left:1px solid var(--brand-border); box-shadow:var(--shadow-lg); z-index:200; transform:translateX(100%); transition:transform .3s var(--ease); padding:var(--space-6); overflow-y:auto; }
+.patient-panel.open { transform:translateX(0); }
+.pp-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:var(--space-4); }
+.pp-name { font-size:var(--text-lg); font-weight:700; }
+.pp-row { display:flex; justify-content:space-between; padding:var(--space-2) 0; border-bottom:1px solid var(--brand-border); font-size:var(--text-sm); }
+.pp-row .pl { color:var(--text-muted); }
+.pp-warn { display:flex; gap:var(--space-2); padding:var(--space-3); border-radius:var(--radius-md); background:rgba(232,165,71,.12); color:var(--status-amber); font-size:.74rem; margin:var(--space-4) 0; }
+.pp-warn svg { width:18px; height:18px; flex-shrink:0; }
+.pp-check { display:flex; align-items:center; gap:var(--space-2); padding:var(--space-2) 0; font-size:var(--text-sm); color:var(--status-green); }
+.pp-check svg { width:16px; height:16px; }
+.pp-actions { display:flex; gap:var(--space-2); margin-top:var(--space-4); }
+.pp-actions button { flex:1; font-size:.74rem; padding:var(--space-3) var(--space-1); }
+.panel-overlay { position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:199; opacity:0; visibility:hidden; transition:all .3s var(--ease); }
+.panel-overlay.open { opacity:1; visibility:visible; }
+
+/* Analytics */
+.analytics-grid { display:grid; grid-template-columns:1fr 1fr; gap:var(--space-6); margin-bottom:var(--space-6); }
+.chart-card { background:var(--brand-surface); border:1px solid var(--brand-border); border-radius:var(--radius-lg); padding:var(--space-6); }
+.chart-card h3 { font-size:var(--text-base); font-weight:600; margin-bottom:var(--space-4); }
+.donut-wrap { display:flex; align-items:center; gap:var(--space-6); }
+.donut-legend { flex:1; display:flex; flex-direction:column; gap:var(--space-2); }
+.dl-item { display:flex; align-items:center; gap:var(--space-2); font-size:var(--text-sm); }
+.dl-item .dot { width:11px; height:11px; border-radius:3px; }
+.dl-item .dl-pct { margin-left:auto; font-weight:700; }
+.ai-banner { background:linear-gradient(135deg, rgba(107,158,214,.1), rgba(143,184,173,.08)); border:1px solid rgba(107,158,214,.3); border-radius:var(--radius-lg); padding:var(--space-6); display:flex; gap:var(--space-4); align-items:flex-start; }
+.ai-icon { width:46px; height:46px; border-radius:var(--radius-md); background:rgba(107,158,214,.16); display:grid; place-items:center; color:var(--status-blue); flex-shrink:0; font-size:1.4rem; }
+.ai-body { flex:1; }
+.ai-body h4 { font-size:var(--text-base); font-weight:700; margin-bottom:var(--space-1); }
+.ai-body p { color:var(--text-muted); font-size:var(--text-sm); margin-bottom:var(--space-4); }
+.ai-actions { display:flex; gap:var(--space-2); }
+.ai-actions .btn-primary, .ai-actions .btn-ghost { width:auto; padding:var(--space-2) var(--space-4); }
+
+/* ═══════════════════════════════════════════════════════════════
+   PRESENTER TOOLBAR
+   ═══════════════════════════════════════════════════════════════ */
+#presenter-toolbar {
+  position:fixed; bottom:0; left:0; right:0; z-index:100;
+  display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) var(--space-6);
+  background:color-mix(in srgb, var(--bg-canvas) 88%, transparent); backdrop-filter:blur(16px);
+  border-top:1px solid var(--brand-border);
+}
+.pt-btn { display:flex; align-items:center; gap:6px; padding:var(--space-2) var(--space-3); border-radius:var(--radius-md); background:var(--brand-surface); border:1px solid var(--brand-border); font-size:.74rem; font-weight:600; color:var(--text-muted); transition:all .18s var(--ease); }
+.pt-btn svg { width:15px; height:15px; }
+.pt-btn:hover { color:var(--brand-primary); border-color:var(--brand-primary); }
+.demo-label { font-size:var(--text-sm); font-weight:600; color:var(--brand-primary); margin-left:var(--space-2); }
+.demo-name { color:var(--text-muted); font-weight:400; }
+.pt-spacer { flex:1; }
+.toggle-anno { display:flex; align-items:center; gap:var(--space-2); font-size:.72rem; color:var(--text-muted); }
+.switch { width:38px; height:21px; border-radius:var(--radius-full); background:var(--brand-surface-2); border:1px solid var(--brand-border); position:relative; transition:all .18s var(--ease); }
+.switch::after { content:''; position:absolute; top:2px; left:2px; width:15px; height:15px; border-radius:50%; background:var(--text-muted); transition:all .18s var(--ease); }
+.switch.on { background:var(--brand-primary); }
+.switch.on::after { left:19px; background:#1A1410; }
+
+/* Annotation bubbles */
+.anno { display:none; position:absolute; z-index:60; }
+.anno.show { display:inline-flex; }
+.anno-badge { width:20px; height:20px; border-radius:50%; background:var(--brand-primary); color:#1A1410; display:grid; place-items:center; font-size:.66rem; font-weight:700; cursor:pointer; animation:pulse-gold 2.4s infinite; }
+.anno-tip { position:absolute; top:26px; left:50%; transform:translateX(-50%); width:210px; background:var(--brand-surface-2); border:1px solid var(--brand-primary); border-radius:var(--radius-md); padding:var(--space-3); font-size:.7rem; color:var(--text-primary); box-shadow:var(--shadow-md); opacity:0; visibility:hidden; transition:all .18s var(--ease); pointer-events:none; }
+.anno:hover .anno-tip { opacity:1; visibility:visible; }
+
+/* Command palette */
+.cmd-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); backdrop-filter:blur(4px); z-index:300; display:none; align-items:flex-start; justify-content:center; padding-top:15vh; }
+.cmd-overlay.open { display:flex; }
+.cmd-box { width:min(540px,90vw); background:var(--brand-surface); border:1px solid var(--brand-primary); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); overflow:hidden; animation:fadeInUp .25s var(--ease); }
+.cmd-input { width:100%; padding:var(--space-4); background:transparent; border:none; outline:none; color:var(--text-primary); font-size:var(--text-base); font-family:inherit; border-bottom:1px solid var(--brand-border); }
+.cmd-results { padding:var(--space-2); max-height:300px; overflow-y:auto; }
+.cmd-item { display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3); border-radius:var(--radius-md); font-size:var(--text-sm); cursor:pointer; transition:background .12s var(--ease); }
+.cmd-item:hover, .cmd-item.sel { background:var(--brand-surface-2); }
+.cmd-item svg { width:17px; height:17px; color:var(--brand-primary); }
+
+/* Confetti */
+.confetti-piece { position:fixed; width:9px; height:9px; z-index:400; pointer-events:none; animation:confetti-fall linear forwards; }
+
+/* Toast */
+.toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--brand-surface-2); border:1px solid var(--brand-primary); color:var(--text-primary); padding:var(--space-3) var(--space-6); border-radius:var(--radius-full); font-size:var(--text-sm); font-weight:600; box-shadow:var(--shadow-lg); z-index:500; opacity:0; visibility:hidden; transition:all .3s var(--ease); }
+.toast.show { opacity:1; visibility:visible; transform:translateX(-50%) translateY(0); }
+
+@media (max-width:1080px) {
+  .kpi-grid { grid-template-columns:repeat(2,1fr); }
+  .dash-grid, .analytics-grid { grid-template-columns:1fr; }
+  .staff-layout { grid-template-columns:1fr; }
+  .sidebar { display:none; }
+}
+@media (max-width:640px) {
+  .sim-header { flex-wrap:wrap; gap:var(--space-3); }
+  .tab-nav { order:3; width:100%; margin:0; justify-content:center; }
+  .tab-nav button span { display:none; }
+  .kpi-grid { grid-template-columns:1fr; }
+  #presenter-toolbar { flex-wrap:wrap; gap:var(--space-2); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PASSWORD GATE
+   ═══════════════════════════════════════════════════════════════ */
+#pw-gate {
+  position:fixed; inset:0; z-index:2000; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:var(--space-6); padding:var(--space-6);
+  background:radial-gradient(900px 600px at 50% 35%, #211D18, #0B0A08 72%);
+}
+#pw-gate.hidden { display:none; }
+.pw-logo { font-size:clamp(1.8rem,5vw,3rem); font-weight:700; letter-spacing:-.02em; animation:splashLogo .6s var(--ease) both; }
+.pw-sub { color:var(--text-muted); font-size:var(--text-sm); letter-spacing:.06em; animation:splashLine .6s var(--ease) .2s both; }
+.pw-box { display:flex; flex-direction:column; gap:var(--space-3); width:min(340px,86vw); animation:fadeInUp .5s var(--ease) .3s both; }
+.pw-input {
+  width:100%; padding:var(--space-4); background:var(--brand-surface); border:1px solid var(--brand-border);
+  border-radius:var(--radius-md); color:var(--text-primary); font-family:inherit; font-size:var(--text-base);
+  text-align:center; outline:none; transition:border-color .18s var(--ease);
+}
+.pw-input:focus { border-color:var(--brand-primary); }
+.pw-input.err { border-color:var(--status-red); animation:shake .35s ease; }
+@keyframes shake { 0%,100%{transform:translateX(0);} 20%,60%{transform:translateX(-7px);} 40%,80%{transform:translateX(7px);} }
+.pw-btn { width:100%; padding:var(--space-4); background:var(--brand-primary); color:#1A1410; font-weight:700; border-radius:var(--radius-md); font-size:var(--text-sm); transition:all .18s var(--ease); }
+.pw-btn:hover { transform:translateY(-2px); box-shadow:var(--shadow-gold); }
+.pw-err { color:var(--status-red); font-size:var(--text-xs); height:1.1em; text-align:center; opacity:0; transition:opacity .18s var(--ease); }
+.pw-err.show { opacity:1; }
+.pw-hint { color:var(--text-faint); font-size:.7rem; text-align:center; max-width:300px; line-height:1.5; }
+</style>
+</head>
+<body>
+
+<!-- ─── PASSWORD GATE ─── -->
+<div id="pw-gate">
+  <div class="pw-logo">feel<span style="color:var(--brand-primary)">X</span><span class="pipe">|</span>soul<span style="color:var(--brand-secondary)">Y</span></div>
+  <div class="pw-sub">Vertrauliche Pitch-Demo</div>
+  <div class="pw-box">
+    <input type="password" class="pw-input" id="pwInput" placeholder="Passwort eingeben" autocomplete="off" autofocus
+      onkeydown="if(event.key==='Enter')checkPassword()">
+    <div class="pw-err" id="pwErr">Falsches Passwort – bitte erneut versuchen.</div>
+    <button class="pw-btn" onclick="checkPassword()">Zugang freischalten →</button>
+  </div>
+  <div class="pw-hint">Diese Demo enthält ausschließlich fiktive Beispieldaten und dient der Produktpräsentation.</div>
+</div>
+
+<!-- ─── SPLASH ─── -->
+<div id="splash-screen">
+  <div class="splash-particles" id="particles"></div>
+  <div class="splash-logo">feel<span style="color:var(--brand-primary)">X</span><span class="pipe">|</span>soul<span style="color:var(--brand-secondary)">Y</span></div>
+  <div class="splash-tag">Digitale Plattform · MedSpa · 2026</div>
+  <button class="splash-btn" onclick="startSimulator()">Simulator starten →</button>
+</div>
+
+<!-- ─── SIMULATOR ─── -->
+<div id="simulator-wrapper">
+  <header class="sim-header">
+    <div class="sim-logo">feel<span style="color:var(--brand-primary)">X</span><span class="pipe">|</span>soul<span style="color:var(--brand-secondary)">Y</span></div>
+    <nav class="tab-nav">
+      <button class="active" data-view="patient" onclick="switchView('patient')"><i data-lucide="smartphone"></i><span>Patienten-App</span></button>
+      <button data-view="staff" onclick="switchView('staff')"><i data-lucide="monitor"></i><span>Staff-Dashboard</span></button>
+      <button data-view="analytics" onclick="switchView('analytics')"><i data-lucide="bar-chart-3"></i><span>Analytics</span></button>
+    </nav>
+    <div class="header-actions">
+      <button class="icon-btn" onclick="openCmd()" title="Suche (⌘K)"><i data-lucide="search"></i></button>
+      <button class="icon-btn" onclick="toggleTheme()" title="Theme" id="themeBtn"><i data-lucide="moon"></i></button>
+      <button class="icon-btn" onclick="goFullscreen()" title="Vollbild"><i data-lucide="maximize"></i></button>
+    </div>
+  </header>
+
+  <!-- ═══ PATIENT VIEW ═══ -->
+  <div class="view active" id="view-patient">
+    <div class="phone-stage">
+      <div class="phone-frame">
+        <div class="dynamic-island"></div>
+        <div class="status-bar">
+          <span class="tnum">9:41</span>
+          <div class="icons">
+            <i data-lucide="signal"></i><i data-lucide="wifi"></i><i data-lucide="battery-full"></i>
+          </div>
+        </div>
+        <div class="screen-content" id="phoneScroll">
+
+          <!-- HOME -->
+          <div class="app-screen active" id="screen-home">
+            <div class="app-header">
+              <div class="logo">feel<span style="color:var(--brand-primary)">X</span><span class="pipe">|</span>soul<span style="color:var(--brand-secondary)">Y</span></div>
+              <div class="avatar">SA</div>
+            </div>
+            <div class="greeting">Guten Morgen, Sophie ✨</div>
+            <div class="greeting-sub">Ihr nächster Termin: <strong style="color:var(--text-primary)">Mi. 04.06. · 14:30 Uhr</strong> · Lounge Düsseldorf</div>
+
+            <div class="quick-row">
+              <button class="quick-card gold-cta" onclick="appNav('booking')" style="position:relative">
+                <div class="qc-icon"><i data-lucide="calendar-plus"></i></div>
+                <div><div class="qc-title">Jetzt buchen</div><div class="qc-sub">Termin sichern</div></div>
+                <div class="anno" data-anno="member-booking" style="top:-8px;right:-8px"><div class="anno-badge">i</div><div class="anno-tip">Mitgliedschaftsguthaben direkt in der Buchung – kein separates Modul.</div></div>
+              </button>
+              <button class="quick-card" onclick="runDemo(2)">
+                <div class="qc-icon"><i data-lucide="qr-code"></i></div>
+                <div><div class="qc-title">Walk-in QR</div><div class="qc-sub">Direkt scannen</div></div>
+              </button>
+              <button class="quick-card" onclick="showToast('Nachkorrektur-Anfrage gesendet ✓')">
+                <div class="qc-icon"><i data-lucide="rotate-ccw"></i></div>
+                <div><div class="qc-title">Nachkorrektur</div><div class="qc-sub"><span class="badge badge-gold">14 Tage</span></div></div>
+              </button>
+            </div>
+
+            <div class="member-banner">
+              <div style="display:flex;justify-content:space-between;align-items:center;position:relative;z-index:1">
+                <span class="badge badge-gold"><i data-lucide="crown" style="width:12px;height:12px"></i> Premium Member</span>
+                <span class="wallet-label">Guthaben</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:var(--space-2);position:relative;z-index:1">
+                <span style="font-size:.72rem;color:var(--text-muted)">Monatlicher Verbrauch</span>
+                <span class="tnum" style="font-size:1.3rem;font-weight:700">€ 285,00</span>
+              </div>
+              <div class="progress-track"><div class="progress-fill" style="width:62%"></div></div>
+            </div>
+
+            <div class="section-title">Anstehende Behandlungen</div>
+            <div class="card hoverable" style="margin-bottom:var(--space-3)">
+              <div class="treatment-card" style="margin:0">
+                <div class="t-avatar"><i data-lucide="syringe"></i></div>
+                <div class="t-body">
+                  <div class="t-name">Botox Glabellaregion</div>
+                  <div class="t-meta">Mi. 04.06. · 14:30 · Dr. med. Lisa Bauer</div>
+                </div>
+                <span class="badge badge-green">Bestätigt</span>
+              </div>
+            </div>
+            <div class="card hoverable">
+              <div class="treatment-card" style="margin:0">
+                <div class="t-avatar"><i data-lucide="droplet"></i></div>
+                <div class="t-body">
+                  <div class="t-name">Skin Booster NCTF</div>
+                  <div class="t-meta">Fr. 20.06. · 11:00 · Dr. Bauer</div>
+                </div>
+                <span class="badge badge-blue">Geplant</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- BOOKING -->
+          <div class="app-screen" id="screen-booking">
+            <div style="display:flex;align-items:center;gap:8px;margin:var(--space-2) 0">
+              <button class="icon-btn" style="width:32px;height:32px" onclick="appNav('home')"><i data-lucide="arrow-left"></i></button>
+              <strong>Termin buchen</strong>
+            </div>
+            <div class="wizard-progress">
+              <div class="wp-step current" data-step="1"></div>
+              <div class="wp-step" data-step="2"></div>
+              <div class="wp-step" data-step="3"></div>
+            </div>
+
+            <!-- Step 1 -->
+            <div class="wizard-step active" id="wstep-1">
+              <div class="step-title">Behandlung wählen</div>
+              <div class="step-sub">Als Premium-Member zahlen Sie vergünstigte Preise.</div>
+              <div class="chip-row" id="serviceChips"></div>
+              <div id="serviceList"></div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="wizard-step" id="wstep-2">
+              <div class="step-title">Termin wählen</div>
+              <div class="step-sub">Standort & freier Slot.</div>
+              <div class="location-select" onclick="cycleLocation()">
+                <span id="locName">📍 Lounge Düsseldorf</span>
+                <i data-lucide="chevron-down" style="width:16px;height:16px"></i>
+              </div>
+              <div class="week-grid" id="weekGrid"></div>
+              <div class="slots-grid" id="slotsGrid"></div>
+              <div class="card walkin-alt" style="margin-top:var(--space-4)">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <div>
+                    <div style="font-size:var(--text-sm);font-weight:600">Direkt vorbeikommen</div>
+                    <div style="font-size:.7rem;color:var(--text-muted)">Geschätzte Wartezeit</div>
+                  </div>
+                  <span class="badge">~12 Min</span>
+                </div>
+              </div>
+              <div class="wizard-actions">
+                <button class="btn-ghost" onclick="gotoStep(1)">Zurück</button>
+                <button class="btn-primary" id="step2Next" onclick="gotoStep(3)" disabled>Weiter</button>
+              </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="wizard-step" id="wstep-3">
+              <div class="step-title">Bestätigung</div>
+              <div class="step-sub">Prüfen & verbindlich buchen.</div>
+              <div class="card" style="margin-bottom:var(--space-4)">
+                <div class="summary-row"><span class="sr-label">Behandlung</span><span class="sr-val" id="sumService">Botox Glabellaregion</span></div>
+                <div class="summary-row"><span class="sr-label">Termin</span><span class="sr-val" id="sumSlot">Mi · 14:30</span></div>
+                <div class="summary-row"><span class="sr-label">Standort</span><span class="sr-val" id="sumLoc">Lounge Düsseldorf</span></div>
+                <div class="summary-row"><span class="sr-label">Behandlerin</span><span class="sr-val">Dr. med. Lisa Bauer</span></div>
+              </div>
+              <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:var(--space-2)">Zahlungsart</div>
+              <div class="pay-toggle">
+                <button class="active" id="payCard" onclick="setPay('card')">💳 Anzahlung €30</button>
+                <button id="payBalance" onclick="setPay('balance')">⭐ Guthaben</button>
+              </div>
+              <div id="payDetail" style="font-size:.74rem;color:var(--text-muted);text-align:center;margin-bottom:var(--space-2)">Anzahlung €30 · Verbleibend €169 vor Ort</div>
+              <div class="info-banner info-green">
+                <i data-lucide="check-circle"></i>
+                <span>Ihre Anamnese ist aktuell – kein Update nötig.</span>
+              </div>
+              <button class="btn-primary" onclick="completeBooking()">Termin verbindlich buchen</button>
+              <button class="btn-ghost" style="margin-top:var(--space-2)" onclick="gotoStep(2)">Zurück</button>
+            </div>
+
+            <!-- Success -->
+            <div class="wizard-step" id="wstep-success">
+              <div class="success-screen">
+                <div class="success-icon"><i data-lucide="check"></i></div>
+                <div class="step-title">Termin gebucht! 🎉</div>
+                <div class="step-sub" id="successText">Wir freuen uns auf Sie am Mi. · 14:30 Uhr.</div>
+                <button class="btn-primary" onclick="appNav('home')">Zur Startseite</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- HISTORY -->
+          <div class="app-screen" id="screen-history">
+            <div style="margin:var(--space-2) 0 var(--space-4)"><strong style="font-size:1.2rem">Behandlungsverlauf</strong></div>
+            <div id="historyList"></div>
+          </div>
+
+          <!-- WALLET -->
+          <div class="app-screen" id="screen-wallet">
+            <div style="margin:var(--space-2) 0 var(--space-4)"><strong style="font-size:1.2rem">Membership Wallet</strong></div>
+            <div class="wallet-card" id="walletCard">
+              <div class="wallet-brand">feel<span style="color:var(--brand-primary)">X</span><span class="pipe">|</span>soul<span style="color:var(--brand-secondary)">Y</span> &nbsp;PREMIUM</div>
+              <div class="wallet-grid">
+                <div><div class="wallet-label">Guthaben</div><div class="wallet-balance tnum" id="walletBalance">€ 285,00</div></div>
+                <div style="text-align:right"><div class="wallet-label">Stufe</div><div style="font-weight:700">⭐ Premium</div></div>
+              </div>
+              <div class="wallet-billing">Nächste Abbuchung: <strong style="color:var(--text-primary)">15.06.</strong> · €149</div>
+            </div>
+
+            <div class="savings-nudge">
+              <div style="font-size:.72rem;color:var(--text-muted)">Als Mitglied dieses Jahr gespart</div>
+              <div class="sn-amt tnum">€ 348 🎉</div>
+            </div>
+
+            <div class="section-title">Transaktionen</div>
+            <div class="card" id="txnList"></div>
+
+            <div class="wallet-actions">
+              <button class="btn-primary" onclick="topUp()">Guthaben aufladen</button>
+              <button class="btn-ghost" onclick="runDemo(3)">Mitgliedschaft</button>
+            </div>
+          </div>
+
+        </div>
+        <nav class="tab-bar">
+          <button class="active" data-screen="home" onclick="appNav('home')"><i data-lucide="home"></i>Home</button>
+          <button data-screen="booking" onclick="appNav('booking')"><i data-lucide="calendar"></i>Buchen</button>
+          <button data-screen="history" onclick="appNav('history')"><i data-lucide="history"></i>Verlauf</button>
+          <button data-screen="wallet" onclick="appNav('wallet')"><i data-lucide="wallet"></i>Wallet</button>
+          <button onclick="showToast('Profil – Demo')"><i data-lucide="user"></i>Profil</button>
+        </nav>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ STAFF VIEW ═══ -->
+  <div class="view" id="view-staff">
+    <div class="staff-layout">
+      <aside class="sidebar">
+        <div class="sb-logo">feel<span style="color:var(--brand-primary)">X</span><span class="pipe">|</span>soul<span style="color:var(--brand-secondary)">Y</span></div>
+        <button class="sb-item active"><i data-lucide="layout-dashboard"></i>Tagesdashboard</button>
+        <button class="sb-item" onclick="showToast('Terminkalender – Demo')"><i data-lucide="calendar"></i>Terminkalender</button>
+        <button class="sb-item" onclick="openCmd()"><i data-lucide="users"></i>Patientinnen</button>
+        <button class="sb-item" onclick="showToast('Behandlungen – Demo')"><i data-lucide="clipboard-list"></i>Behandlungen</button>
+        <button class="sb-item" onclick="switchView('analytics')"><i data-lucide="trending-up"></i>Analytics</button>
+        <button class="sb-item" onclick="showToast('Einstellungen – Demo')"><i data-lucide="settings"></i>Einstellungen</button>
+        <hr>
+        <div class="sb-user">
+          <div class="su-name">👩‍⚕️ Dr. L. Bauer</div>
+          <div class="su-loc">Lounge Düsseldorf</div>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <div class="staff-screen active" id="screen-dashboard">
+          <div class="page-title">Tagesdashboard</div>
+          <div class="page-sub">Dienstag, 02. Juni 2026 · Live-Übersicht</div>
+
+          <div class="kpi-grid" id="kpiGrid">
+            <div class="kpi-card" style="position:relative">
+              <div class="kpi-label">Termine heute</div>
+              <div class="kpi-value"><span class="kpi-num" data-target="18">0</span> / 22</div>
+              <div class="kpi-delta kpi-up"><i data-lucide="arrow-up"></i> +2 vs. Mo.</div>
+              <div class="anno" data-anno="kpi" style="top:10px;right:10px"><div class="anno-badge">i</div><div class="anno-tip">Echtzeit-Auslastung pro Standort – KI-gestützte Tagesprognose inklusive.</div></div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Auslastung</div>
+              <div class="kpi-value"><span class="kpi-num" data-target="82">0</span>%</div>
+              <div class="kpi-bar"><div data-width="82"></div></div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Tagesumsatz</div>
+              <div class="kpi-value">€ <span class="kpi-num" data-target="3240">0</span></div>
+              <div class="kpi-delta kpi-up"><i data-lucide="arrow-up"></i> +12% vs. LW</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Walk-ins</div>
+              <div class="kpi-value"><span class="kpi-num" data-target="5">0</span> <span style="font-size:.9rem;color:var(--text-muted)">(<span id="waitCount">3</span> wartend)</span></div>
+              <div class="kpi-delta" style="color:var(--text-muted)">~8 Min Wartezeit</div>
+            </div>
+          </div>
+
+          <div class="dash-grid">
+            <div class="timeline-cal">
+              <div class="cal-head">
+                <h3>Behandlungsplan</h3>
+                <div class="cal-legend">
+                  <span><i class="dot" style="background:var(--status-blue)"></i>Gebucht</span>
+                  <span><i class="dot" style="background:var(--status-green)"></i>Bestätigt</span>
+                  <span><i class="dot" style="background:var(--brand-primary)"></i>In Behandlung</span>
+                  <span><i class="dot" style="background:var(--text-faint)"></i>Abgeschlossen</span>
+                </div>
+              </div>
+              <div class="swimlane">
+                <div class="time-axis">
+                  <span></span>
+                  <div class="time-ticks">
+                    <span>09:00</span><span>10:00</span><span>11:00</span><span>12:00</span><span>13:00</span><span>14:00</span><span>15:00</span><span>16:00</span>
+                  </div>
+                </div>
+                <div id="lanesContainer"></div>
+              </div>
+            </div>
+
+            <div class="waitlist-card">
+              <h3>Warteschlange</h3>
+              <div style="font-size:.7rem;color:var(--text-muted);margin-bottom:var(--space-3)"><span id="wlHeaderCount">3</span> Personen</div>
+              <div id="waitlistContainer"></div>
+              <button class="btn-ghost" style="margin-top:var(--space-3)" onclick="addWalkin()"><i data-lucide="plus" style="width:14px;height:14px;vertical-align:-2px"></i> Walk-in eintragen</button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ═══ ANALYTICS VIEW ═══ -->
+  <div class="view" id="view-analytics">
+    <div class="main-content" style="max-width:1100px;margin:0 auto">
+      <div class="page-title">Analytics</div>
+      <div class="page-sub">Performance-Übersicht · Lounge Düsseldorf</div>
+
+      <div class="analytics-grid">
+        <div class="chart-card">
+          <h3>Behandlungsverteilung</h3>
+          <div class="donut-wrap">
+            <svg width="160" height="160" viewBox="0 0 42 42" id="donutSvg"></svg>
+            <div class="donut-legend" id="donutLegend"></div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>Umsatz · letzte 7 Tage</h3>
+          <svg width="100%" height="180" viewBox="0 0 360 180" id="lineSvg" preserveAspectRatio="none"></svg>
+        </div>
+      </div>
+
+      <div class="ai-banner">
+        <div class="ai-icon">🤖</div>
+        <div class="ai-body">
+          <h4>KI-Prognose</h4>
+          <p>Morgen werden <strong style="color:var(--text-primary)">3 freie Slots</strong> erwartet (14:00–15:30). Wartelisten-Push an <strong style="color:var(--text-primary)">8 Patientinnen</strong> empfohlen.</p>
+          <div class="ai-actions">
+            <button class="btn-primary" onclick="showToast('Push an 8 Patientinnen gesendet ✓')">Jetzt Push senden</button>
+            <button class="btn-ghost" onclick="showToast('Prognose ignoriert')">Ignorieren</button>
+          </div>
+        </div>
+        <div class="anno" data-anno="ai" style="top:10px;right:10px"><div class="anno-badge">i</div><div class="anno-tip">Auslastungs-Prognose triggert automatisierte Wartelisten-Kampagnen – maximiert Umsatz pro Slot.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Patient panel -->
+  <div class="panel-overlay" id="panelOverlay" onclick="closePanel()"></div>
+  <aside class="patient-panel" id="patientPanel">
+    <div class="pp-head">
+      <div>
+        <div class="pp-name">Sophie A. <span class="badge badge-gold" style="vertical-align:3px">⭐ Premium</span></div>
+        <div style="font-size:.7rem;color:var(--text-muted)">Letzter Besuch: 28.05.2026</div>
+      </div>
+      <button class="icon-btn" onclick="closePanel()"><i data-lucide="x"></i></button>
+    </div>
+    <div class="pp-row"><span class="pl">Behandlung</span><span id="ppTreat">Botox Glabella</span></div>
+    <div class="pp-row"><span class="pl">Behandlerin</span><span>Dr. L. Bauer</span></div>
+    <div class="pp-row"><span class="pl">Status</span><span id="ppStatus">Bestätigt</span></div>
+    <div class="pp-warn">
+      <i data-lucide="alert-triangle"></i>
+      <span><strong>Hinweis:</strong> Blutgerinnungshemmer → bitte Ärztin informieren.</span>
+    </div>
+    <div class="pp-check"><i data-lucide="check-circle"></i> Anamnese: vollständig</div>
+    <div class="pp-check"><i data-lucide="check-circle"></i> Einwilligung: digital signiert</div>
+    <div class="pp-actions">
+      <button class="btn-ghost" onclick="showToast('Akte geöffnet')">Akte</button>
+      <button class="btn-primary" onclick="checkInPatient()" id="ppCheckBtn">Check-in</button>
+      <button class="btn-ghost" onclick="showToast('Notiz gespeichert')">Notiz</button>
+    </div>
+  </aside>
+
+  <!-- Presenter toolbar -->
+  <div id="presenter-toolbar">
+    <button class="pt-btn" onclick="prevDemo()"><i data-lucide="chevron-left"></i> Vorherige</button>
+    <button class="pt-btn" onclick="nextDemo()">Nächste <i data-lucide="chevron-right"></i></button>
+    <button class="pt-btn" onclick="resetAll()"><i data-lucide="rotate-ccw"></i> Reset</button>
+    <button class="pt-btn" onclick="goFullscreen()"><i data-lucide="maximize"></i> Vollbild</button>
+    <span class="demo-label">Demo: <span id="demoNum">1</span>/5 – <span class="demo-name" id="demoName">Buchungs-Flow</span></span>
+    <div class="pt-spacer"></div>
+    <div class="toggle-anno" onclick="toggleAnno()">
+      <span>Annotationen</span>
+      <div class="switch" id="annoSwitch"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Command palette -->
+<div class="cmd-overlay" id="cmdOverlay" onclick="if(event.target===this)closeCmd()">
+  <div class="cmd-box">
+    <input class="cmd-input" id="cmdInput" placeholder="Suche Patientin, Aktion oder Screen…" oninput="filterCmd()">
+    <div class="cmd-results" id="cmdResults"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// PASSWORD GATE
+// ═══════════════════════════════════════════════════════════════
+// ▼▼▼ HIER DAS PASSWORT ÄNDERN ▼▼▼  (einfach den Text zwischen den Anführungszeichen ersetzen)
+const ACCESS_PASSWORD = "GlowFounder_1990)";
+// ▲▲▲ HIER DAS PASSWORT ÄNDERN ▲▲▲
+function checkPassword(){
+  const input = document.getElementById('pwInput');
+  const err = document.getElementById('pwErr');
+  if(input.value === ACCESS_PASSWORD){
+    document.getElementById('pw-gate').classList.add('hidden');
+  } else {
+    err.classList.add('show');
+    input.classList.add('err');
+    input.value = '';
+    setTimeout(()=>input.classList.remove('err'), 400);
+    input.focus();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MOCK DATA
+// ═══════════════════════════════════════════════════════════════
+const mockData = {
+  patient: {
+    name:"Sophie Andersen", initials:"SA", membership:"Premium", balance:285.00,
+    nextBilling:"15.06.2026", monthlyFee:149,
+    history:[
+      { date:"28.05.2026", treatment:"Botox Glabella", location:"Lounge Düsseldorf", doctor:"Dr. Bauer", hasPhoto:true },
+      { date:"02.03.2026", treatment:"Hyaluronsäure Nasolabial", location:"Lounge Köln", doctor:"Dr. Meyer", hasPhoto:true },
+      { date:"10.12.2025", treatment:"Skin Booster NCTF", location:"Lounge Düsseldorf", doctor:"Dr. Bauer", hasPhoto:false }
+    ],
+    transactions:[
+      { type:"credit", amount:149, label:"Monatliche Aufladung", date:"01.06.2026" },
+      { type:"debit", amount:159, label:"Botox Glabella", date:"28.05.2026" },
+      { type:"debit", amount:30, label:"Anzahlung Termin 04.06", date:"02.06.2026" }
+    ]
+  },
+  staff:{
+    doctors:[
+      { name:"Dr. L. Bauer", slots:[
+        { time:"09:00", dur:2, treatment:"Botox", patient:"Sophie A.", status:"completed" },
+        { time:"10:00", dur:2, treatment:"Skin Booster", patient:"Mia K.", status:"active" },
+        { time:"13:00", dur:2, treatment:"Filler", patient:"Jana H.", status:"confirmed" },
+        { time:"14:30", dur:2, treatment:"Botox", patient:"Lena M.", status:"booked" }
+      ]},
+      { name:"Dr. K. Meyer", slots:[
+        { time:"09:30", dur:3, treatment:"PRP", patient:"Anna B.", status:"completed" },
+        { time:"13:30", dur:2, treatment:"Botox", patient:"Sara W.", status:"confirmed" }
+      ]}
+    ],
+    waitlist:[
+      { name:"Maria K.", treatment:"Botox", waitMin:5 },
+      { name:"Jana H.", treatment:"Skin Booster", waitMin:12 },
+      { name:"Walk-in", treatment:"–", waitMin:18 }
+    ]
+  },
+  services:[
+    { id:1, category:"botox", name:"Botox Glabellaregion", duration:"20–30 Min", price:199, memberPrice:159, rating:4.9, reviews:128, icon:"syringe" },
+    { id:2, category:"filler", name:"Hyaluronsäure Nasolabialfalten", duration:"30–45 Min", price:249, memberPrice:199, rating:4.8, reviews:94, icon:"droplets" },
+    { id:3, category:"skin", name:"Skin Booster NCTF", duration:"30 Min", price:189, memberPrice:149, rating:4.9, reviews:67, icon:"sparkles" },
+    { id:4, category:"prp", name:"PRP Face", duration:"45–60 Min", price:299, memberPrice:249, rating:4.7, reviews:41, icon:"activity" }
+  ]
+};
+
+// ─── STATE ───
+let state = {
+  view:"patient", appScreen:"home", wizardStep:1,
+  selectedService:null, selectedSlot:null, selectedDay:2, payMethod:"card",
+  location:"Lounge Düsseldorf", walkins:[...mockData.staff.waitlist],
+  balance:285.00, annoOn:false, demo:1, kpiAnimated:false
+};
+const locations = ["Lounge Düsseldorf","Lounge Köln","Lounge Berlin Mitte"];
+let locIdx = 0;
+const demos = [
+  { id:1, name:"Buchungs-Flow" }, { id:2, name:"Walk-in Workflow" },
+  { id:3, name:"Mitgliedschaft" }, { id:4, name:"Behandlungsverlauf" }, { id:5, name:"KI-Dashboard" }
+];
+
+// ─── SPLASH / INIT ───
+function buildParticles(){
+  const c = document.getElementById('particles');
+  for(let i=0;i<26;i++){ const s=document.createElement('span');
+    s.style.left=Math.random()*100+'%'; s.style.top=Math.random()*100+'%';
+    s.style.animationDelay=Math.random()*6+'s'; s.style.animationDuration=(4+Math.random()*4)+'s';
+    c.appendChild(s); }
+}
+function startSimulator(){
+  document.getElementById('splash-screen').classList.add('hidden');
+  setTimeout(()=>{ if(!state.kpiAnimated && state.view==='patient'){} }, 100);
+}
+setTimeout(()=>{ const sp=document.getElementById('splash-screen'); if(sp && !sp.classList.contains('hidden')) startSimulator(); }, 4500);
+
+// ─── VIEW SWITCH ───
+function switchView(v){
+  state.view=v;
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelectorAll('.tab-nav button').forEach(b=>b.classList.toggle('active', b.dataset.view===v));
+  if(v==='staff'){ animateKPIs(); }
+  if(v==='analytics'){ drawCharts(); }
+  refreshIcons();
+}
+
+// ─── APP NAV (phone tabs) ───
+function appNav(screen){
+  state.appScreen=screen;
+  document.querySelectorAll('.app-screen').forEach(el=>el.classList.remove('active'));
+  document.getElementById('screen-'+screen).classList.add('active');
+  document.querySelectorAll('.tab-bar button').forEach(b=>b.classList.toggle('active', b.dataset.screen===screen));
+  document.getElementById('phoneScroll').scrollTop=0;
+  if(screen==='booking'){ resetWizard(); }
+  refreshIcons();
+}
+
+// ─── BOOKING WIZARD ───
+function renderServices(filter='alle'){
+  const chips=['alle','botox','filler','skin','prp','membership'];
+  const labels={alle:'Alle',botox:'Botox',filler:'Filler',skin:'Skin Booster',prp:'PRP',membership:'Membership'};
+  document.getElementById('serviceChips').innerHTML = chips.map(c=>
+    `<button class="chip ${c===filter?'active':''}" onclick="renderServices('${c}')">${labels[c]}</button>`).join('');
+  const list = mockData.services.filter(s=> filter==='alle'||filter==='membership' ? true : s.category===filter);
+  document.getElementById('serviceList').innerHTML = list.map((s,i)=>`
+    <div class="card hoverable service-card ${state.selectedService===s.id?'selected':''}" style="animation:fadeInUp .4s var(--ease) ${i*70}ms both" onclick="selectService(${s.id})">
+      <div class="sc-top">
+        <div>
+          <div class="sc-name"><i data-lucide="${s.icon}" style="width:16px;height:16px;color:var(--brand-secondary)"></i> ${s.name}</div>
+          <div class="sc-meta">${s.duration} · ⭐ ${s.rating} (${s.reviews})</div>
+        </div>
+        <span class="badge badge-gold">MEMBER</span>
+      </div>
+      <div class="price-line">
+        <span class="price-old tnum">€${s.price}</span>
+        <span class="price-member tnum">€${s.memberPrice}</span>
+        <span style="font-size:.66rem;color:var(--text-muted)">aus Guthaben ✓</span>
+      </div>
+    </div>`).join('');
+  refreshIcons();
+}
+function selectService(id){
+  state.selectedService=id; renderServices(document.querySelector('.chip.active')?.textContent.toLowerCase().includes('alle')?'alle':'alle');
+  const s=mockData.services.find(x=>x.id===id);
+  document.getElementById('sumService').textContent=s.name;
+  setTimeout(()=>gotoStep(2), 250);
+}
+const weekDays=['Mo','Di','Mi','Do','Fr','Sa','So'];
+const weekNums=[2,3,4,5,6,7,8];
+function renderWeek(){
+  document.getElementById('weekGrid').innerHTML = weekDays.map((d,i)=>`
+    <div class="day-cell ${i===0?'today':''} ${state.selectedDay===i?'sel':''}" onclick="selectDay(${i})">
+      <div class="dc-day">${d}</div><div class="dc-num tnum">${weekNums[i]}</div>
+    </div>`).join('');
+}
+function selectDay(i){ state.selectedDay=i; renderWeek(); }
+const slotTimes=[
+  {t:"10:00"},{t:"10:30"},{t:"11:00",booked:true},{t:"11:30"},
+  {t:"14:00"},{t:"14:30"},{t:"15:00"},{t:"15:30",booked:true},{t:"16:00"}
+];
+function renderSlots(){
+  document.getElementById('slotsGrid').innerHTML = slotTimes.map(s=>`
+    <button class="slot-btn ${s.booked?'booked':''} ${state.selectedSlot===s.t?'sel':''}" ${s.booked?'disabled':''} onclick="selectSlot('${s.t}')">${s.t}</button>`).join('');
+}
+function selectSlot(t){
+  state.selectedSlot=t; renderSlots();
+  document.getElementById('step2Next').disabled=false;
+  document.getElementById('sumSlot').textContent=`${weekDays[state.selectedDay]} ${weekNums[state.selectedDay]}.06. · ${t}`;
+}
+function cycleLocation(){
+  locIdx=(locIdx+1)%locations.length; state.location=locations[locIdx];
+  document.getElementById('locName').textContent='📍 '+state.location;
+  document.getElementById('sumLoc').textContent=state.location;
+}
+function gotoStep(n){
+  state.wizardStep=n;
+  document.querySelectorAll('.wizard-step').forEach(el=>el.classList.remove('active'));
+  document.getElementById('wstep-'+n).classList.add('active');
+  document.querySelectorAll('.wp-step').forEach(el=>{
+    const st=parseInt(el.dataset.step);
+    el.classList.toggle('done', st<n); el.classList.toggle('current', st===n);
+  });
+  document.getElementById('phoneScroll').scrollTop=0;
+  refreshIcons();
+}
+function setPay(m){
+  state.payMethod=m;
+  document.getElementById('payCard').classList.toggle('active', m==='card');
+  document.getElementById('payBalance').classList.toggle('active', m==='balance');
+  document.getElementById('payDetail').textContent = m==='card'
+    ? 'Anzahlung €30 · Verbleibend €169 vor Ort'
+    : `Vom Guthaben abziehen (€${state.balance.toFixed(0)} → €${(state.balance-159).toFixed(0)})`;
+}
+function completeBooking(){
+  fireConfetti();
+  document.querySelectorAll('.wizard-step').forEach(el=>el.classList.remove('active'));
+  document.getElementById('wstep-success').classList.add('active');
+  document.querySelectorAll('.wp-step').forEach(el=>{el.classList.add('done');el.classList.remove('current');});
+  const slot=document.getElementById('sumSlot').textContent;
+  document.getElementById('successText').textContent=`Wir freuen uns auf Sie am ${slot} Uhr.`;
+  if(state.payMethod==='balance'){ state.balance-=159; refreshWallet(); }
+  refreshIcons();
+}
+function resetWizard(){
+  state.wizardStep=1; state.selectedService=null; state.selectedSlot=null; state.selectedDay=2; state.payMethod='card';
+  renderServices('alle'); renderWeek(); renderSlots(); setPay('card');
+  document.getElementById('step2Next').disabled=true;
+  gotoStep(1);
+}
+
+// ─── HISTORY ───
+function renderHistory(){
+  document.getElementById('historyList').innerHTML = mockData.patient.history.map((h,i)=>`
+    <div class="timeline-item" style="animation:fadeInUp .4s var(--ease) ${i*120}ms both">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:var(--text-sm);font-weight:600">${h.treatment}</div>
+            <div style="font-size:.68rem;color:var(--text-muted)">${h.date} · ${h.location} · ${h.doctor}</div>
+          </div>
+          <div class="avatar" style="width:30px;height:30px;font-size:.7rem">${h.doctor.includes('Bauer')?'LB':'KM'}</div>
+        </div>
+        ${h.hasPhoto?`<button class="btn-ghost" style="margin-top:var(--space-3)" onclick="toggleBA(this)">Ergebnis ansehen</button>
+        <div class="ba-wrap" style="display:none">
+          <div class="before-after">
+            <span class="ba-badge badge badge-gold">6 Monate Verlauf</span>
+            <div class="ba-img ba-before" data-label="Vorher"></div>
+            <div class="ba-img ba-after"></div>
+            <div class="ba-handle"><span class="arrows"><i data-lucide="move-horizontal"></i></span></div>
+          </div>
+        </div>`:''}
+      </div>
+    </div>`).join('');
+  refreshIcons();
+}
+function toggleBA(btn){
+  const wrap=btn.nextElementSibling;
+  const open=wrap.style.display==='none';
+  wrap.style.display=open?'block':'none';
+  btn.textContent=open?'Verbergen':'Ergebnis ansehen';
+  if(open) initBASlider(wrap.querySelector('.before-after'));
+}
+function initBASlider(el){
+  if(!el || el.dataset.init) return; el.dataset.init='1';
+  const after=el.querySelector('.ba-after'), handle=el.querySelector('.ba-handle');
+  let dragging=false;
+  const move=(clientX)=>{
+    const r=el.getBoundingClientRect();
+    let pct=((clientX-r.left)/r.width)*100; pct=Math.max(2,Math.min(98,pct));
+    after.style.clipPath=`inset(0 ${100-pct}% 0 0)`; handle.style.left=pct+'%';
+  };
+  const start=()=>dragging=true; const end=()=>dragging=false;
+  el.addEventListener('mousedown',e=>{start();move(e.clientX);});
+  window.addEventListener('mousemove',e=>{if(dragging)move(e.clientX);});
+  window.addEventListener('mouseup',end);
+  el.addEventListener('touchstart',e=>{start();move(e.touches[0].clientX);},{passive:true});
+  el.addEventListener('touchmove',e=>{if(dragging)move(e.touches[0].clientX);},{passive:true});
+  el.addEventListener('touchend',end);
+}
+
+// ─── WALLET ───
+function renderTxns(){
+  document.getElementById('txnList').innerHTML = mockData.patient.transactions.map(t=>`
+    <div class="txn">
+      <div><div class="txn-label">${t.label}</div><div class="txn-date">${t.date}</div></div>
+      <div class="txn-amt ${t.type}">${t.type==='credit'?'+':'−'} €${t.amount}</div>
+    </div>`).join('');
+}
+function refreshWallet(){
+  document.getElementById('walletBalance').textContent='€ '+state.balance.toFixed(2).replace('.',',');
+}
+function topUp(){
+  state.balance+=149; refreshWallet();
+  mockData.patient.transactions.unshift({type:'credit',amount:149,label:'Manuelle Aufladung',date:'02.06.2026'});
+  renderTxns(); showToast('€149 aufgeladen ✓');
+}
+// Wallet tilt
+function initWalletTilt(){
+  const card=document.getElementById('walletCard');
+  card.addEventListener('mousemove',e=>{
+    const r=card.getBoundingClientRect();
+    const rx=((e.clientY-r.top)/r.height-.5)*-10, ry=((e.clientX-r.left)/r.width-.5)*10;
+    card.style.transform=`perspective(800px) rotateX(${rx}deg) rotateY(${ry}deg)`;
+  });
+  card.addEventListener('mouseleave',()=>card.style.transform='perspective(800px) rotateX(0) rotateY(0)');
+}
+
+// ─── STAFF: KPIs ───
+function animateKPIs(){
+  if(state.kpiAnimated) return; state.kpiAnimated=true;
+  document.querySelectorAll('.kpi-num').forEach(el=>{
+    const target=+el.dataset.target; const dur=1100; const t0=performance.now();
+    const step=now=>{ const p=Math.min((now-t0)/dur,1); const e=1-Math.pow(1-p,3);
+      el.textContent=Math.round(target*e).toLocaleString('de-DE');
+      if(p<1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  });
+  setTimeout(()=>document.querySelectorAll('.kpi-bar div').forEach(b=>b.style.width=b.dataset.width+'%'),200);
+}
+function renderLanes(){
+  const startH=9, totalH=8; // 09:00–17:00
+  const pos=t=>{ const [h,m]=t.split(':').map(Number); return ((h+m/60-startH)/totalH)*100; };
+  document.getElementById('lanesContainer').innerHTML = mockData.staff.doctors.map(doc=>`
+    <div class="lane">
+      <div class="lane-name">${doc.name}</div>
+      <div class="lane-track">
+        ${doc.slots.map(s=>`<div class="appt ${s.status}" style="left:${pos(s.time)}%;width:${(s.dur/totalH)*100}%" data-patient="${s.patient}" data-treat="${s.treatment}" data-status="${s.status}" onclick="openPanel(this)">
+          <span class="a-name">${s.patient}</span><span class="a-treat">${s.treatment}</span></div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+function renderWaitlist(){
+  document.getElementById('waitlistContainer').innerHTML = state.walkins.map((w,i)=>`
+    <div class="wl-item">
+      <div class="wl-num">${i+1}</div>
+      <div class="wl-body"><div class="wl-name">${w.name}</div><div class="wl-meta">${w.treatment} · ~${w.waitMin} Min</div></div>
+    </div>`).join('');
+  const c=state.walkins.length;
+  document.getElementById('wlHeaderCount').textContent=c;
+  document.getElementById('waitCount').textContent=c;
+}
+const walkinPool=[
+  {name:"Nina P.",treatment:"Botox",waitMin:22},{name:"Clara V.",treatment:"PRP",waitMin:25},
+  {name:"Walk-in",treatment:"Beratung",waitMin:28},{name:"Lea T.",treatment:"Filler",waitMin:30}
+];
+let walkinIdx=0;
+function addWalkin(){
+  const w=walkinPool[walkinIdx%walkinPool.length]; walkinIdx++;
+  state.walkins.push({...w}); renderWaitlist(); showToast(`${w.name} zur Warteschlange hinzugefügt`);
+}
+
+// ─── PATIENT PANEL ───
+let activeAppt=null;
+function openPanel(el){
+  activeAppt=el;
+  document.getElementById('ppTreat').textContent=el.dataset.treat;
+  document.querySelector('.pp-name').childNodes[0].textContent='';
+  document.querySelector('#patientPanel .pp-name').innerHTML=`${el.dataset.patient} <span class="badge badge-gold" style="vertical-align:3px">⭐ Premium</span>`;
+  const labels={booked:'Gebucht',confirmed:'Bestätigt',active:'In Behandlung',completed:'Abgeschlossen'};
+  document.getElementById('ppStatus').textContent=labels[el.dataset.status]||el.dataset.status;
+  document.getElementById('ppCheckBtn').textContent = el.dataset.status==='active'?'Abschließen':el.dataset.status==='completed'?'Abgeschlossen ✓':'Check-in';
+  document.getElementById('patientPanel').classList.add('open');
+  document.getElementById('panelOverlay').classList.add('open');
+  refreshIcons();
+}
+function closePanel(){
+  document.getElementById('patientPanel').classList.remove('open');
+  document.getElementById('panelOverlay').classList.remove('open');
+}
+const statusFlow={booked:'active',confirmed:'active',active:'completed',completed:'completed'};
+const statusClass=['booked','confirmed','active','completed','noshow'];
+function checkInPatient(){
+  if(!activeAppt) return;
+  const cur=activeAppt.dataset.status; const next=statusFlow[cur];
+  statusClass.forEach(c=>activeAppt.classList.remove(c));
+  activeAppt.classList.add(next); activeAppt.dataset.status=next;
+  const labels={active:'In Behandlung',completed:'Abgeschlossen'};
+  document.getElementById('ppStatus').textContent=labels[next];
+  document.getElementById('ppCheckBtn').textContent= next==='active'?'Abschließen':'Abgeschlossen ✓';
+  showToast(next==='active'?'Check-in erfolgt → In Behandlung':'Behandlung abgeschlossen ✓');
+}
+
+// ─── ANALYTICS CHARTS ───
+const donutData=[
+  {label:'Botox',pct:38,color:'#C8A97E'},{label:'Filler',pct:27,color:'#8FB8AD'},
+  {label:'Skin',pct:18,color:'#6B9ED6'},{label:'PRP',pct:10,color:'#E8A547'},{label:'Sonstige',pct:7,color:'#5C5650'}
+];
+let chartsDrawn=false;
+function drawCharts(){
+  if(chartsDrawn) return; chartsDrawn=true;
+  // Donut
+  let offset=25; const svg=document.getElementById('donutSvg');
+  let html=`<circle cx="21" cy="21" r="15.915" fill="none" stroke="var(--brand-surface-2)" stroke-width="4"/>`;
+  donutData.forEach(d=>{
+    html+=`<circle cx="21" cy="21" r="15.915" fill="none" stroke="${d.color}" stroke-width="4"
+      stroke-dasharray="${d.pct} ${100-d.pct}" stroke-dashoffset="${offset}" style="transition:stroke-dasharray 1s ease"/>`;
+    offset-=d.pct;
+  });
+  html+=`<text x="21" y="20" text-anchor="middle" font-size="6" font-weight="700" fill="var(--text-primary)">100%</text>
+         <text x="21" y="25" text-anchor="middle" font-size="2.6" fill="var(--text-muted)">Behandlungen</text>`;
+  svg.innerHTML=html;
+  document.getElementById('donutLegend').innerHTML=donutData.map(d=>`
+    <div class="dl-item"><span class="dot" style="background:${d.color}"></span>${d.label}<span class="dl-pct tnum">${d.pct}%</span></div>`).join('');
+  // Line chart
+  const pts=[2100,2680,2400,3100,2900,3450,3240];
+  const max=3600, min=1800, W=360, H=180, pad=20;
+  const x=i=>pad+(i/(pts.length-1))*(W-2*pad);
+  const y=v=>H-pad-((v-min)/(max-min))*(H-2*pad);
+  const line=pts.map((v,i)=>`${i===0?'M':'L'}${x(i)},${y(v)}`).join(' ');
+  const area=line+` L${x(pts.length-1)},${H-pad} L${x(0)},${H-pad} Z`;
+  const ls=document.getElementById('lineSvg');
+  ls.innerHTML=`
+    <defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(200,169,126,.35)"/><stop offset="100%" stop-color="rgba(200,169,126,0)"/>
+    </linearGradient></defs>
+    <path d="${area}" fill="url(#lg)"/>
+    <path d="${line}" fill="none" stroke="var(--brand-primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+      stroke-dasharray="1000" stroke-dashoffset="1000" style="animation:drawLine 1.4s var(--ease) forwards"/>
+    ${pts.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="3" fill="var(--brand-primary)"/>`).join('')}`;
+}
+
+// ─── THEME / FULLSCREEN ───
+function toggleTheme(){
+  const cur=document.documentElement.getAttribute('data-theme');
+  const next=cur==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',next);
+  document.getElementById('themeBtn').innerHTML=`<i data-lucide="${next==='dark'?'moon':'sun'}"></i>`;
+  refreshIcons();
+}
+function goFullscreen(){
+  if(!document.fullscreenElement){ document.documentElement.requestFullscreen?.(); }
+  else{ document.exitFullscreen?.(); }
+}
+
+// ─── CONFETTI ───
+function fireConfetti(){
+  const colors=['#C8A97E','#8FB8AD','#6DAF85','#E8A547','#6B9ED6','#F2EDE8'];
+  for(let i=0;i<28;i++){
+    const p=document.createElement('div'); p.className='confetti-piece';
+    p.style.left=(40+Math.random()*20)+'%'; p.style.top='40%';
+    p.style.background=colors[i%colors.length];
+    p.style.borderRadius=Math.random()>.5?'50%':'2px';
+    p.style.animationDuration=(1+Math.random()*1.2)+'s';
+    p.style.animationDelay=(Math.random()*.2)+'s';
+    p.style.transform=`translateX(${(Math.random()-.5)*200}px)`;
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),2400);
+  }
+}
+
+// ─── TOAST ───
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2400);
+}
+
+// ─── PRESENTER DEMOS ───
+function runDemo(n){
+  state.demo=n;
+  document.getElementById('demoNum').textContent=n;
+  document.getElementById('demoName').textContent=demos[n-1].name;
+  switch(n){
+    case 1: switchView('patient'); appNav('booking'); break;
+    case 2: switchView('staff'); document.getElementById('view-staff').scrollIntoView({behavior:'smooth'}); break;
+    case 3: switchView('patient'); appNav('wallet'); break;
+    case 4: switchView('patient'); appNav('history'); break;
+    case 5: switchView('analytics'); break;
+  }
+}
+function nextDemo(){ runDemo(state.demo>=5?1:state.demo+1); }
+function prevDemo(){ runDemo(state.demo<=1?5:state.demo-1); }
+
+// ─── ANNOTATIONS ───
+function toggleAnno(){
+  state.annoOn=!state.annoOn;
+  document.getElementById('annoSwitch').classList.toggle('on',state.annoOn);
+  document.querySelectorAll('.anno').forEach(a=>a.classList.toggle('show',state.annoOn));
+}
+
+// ─── COMMAND PALETTE ───
+const cmdActions=[
+  {label:'Sophie Andersen – Akte öffnen',icon:'user',act:()=>{closeCmd();switchView('staff');openPanel(document.querySelector('.appt'));}},
+  {label:'Patientin: Mia K.',icon:'user',act:()=>{closeCmd();showToast('Mia K. – Akte');}},
+  {label:'Patientin: Jana H.',icon:'user',act:()=>{closeCmd();showToast('Jana H. – Akte');}},
+  {label:'Zum Buchungs-Flow',icon:'calendar',act:()=>{closeCmd();runDemo(1);}},
+  {label:'Zum Tagesdashboard',icon:'layout-dashboard',act:()=>{closeCmd();switchView('staff');}},
+  {label:'Analytics öffnen',icon:'bar-chart-3',act:()=>{closeCmd();switchView('analytics');}},
+  {label:'Walk-in eintragen',icon:'plus',act:()=>{closeCmd();switchView('staff');addWalkin();}},
+  {label:'Alles zurücksetzen',icon:'rotate-ccw',act:()=>{closeCmd();resetAll();}}
+];
+function openCmd(){ document.getElementById('cmdOverlay').classList.add('open'); document.getElementById('cmdInput').value=''; filterCmd(); document.getElementById('cmdInput').focus(); }
+function closeCmd(){ document.getElementById('cmdOverlay').classList.remove('open'); }
+function filterCmd(){
+  const q=document.getElementById('cmdInput').value.toLowerCase();
+  const res=cmdActions.filter(a=>a.label.toLowerCase().includes(q));
+  document.getElementById('cmdResults').innerHTML=res.map((a,i)=>
+    `<div class="cmd-item ${i===0?'sel':''}" data-idx="${cmdActions.indexOf(a)}"><i data-lucide="${a.icon}"></i>${a.label}</div>`).join('')
+    || `<div class="cmd-item" style="color:var(--text-muted)">Keine Treffer</div>`;
+  document.querySelectorAll('.cmd-item[data-idx]').forEach(el=>el.onclick=()=>cmdActions[+el.dataset.idx].act());
+  refreshIcons();
+}
+document.addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){ e.preventDefault(); openCmd(); }
+  if(e.key==='Escape'){ closeCmd(); closePanel(); }
+});
+
+// ─── RESET ───
+function resetAll(){
+  state.walkins=[...mockData.staff.waitlist]; walkinIdx=0;
+  state.balance=285.00; refreshWallet();
+  mockData.patient.transactions=[
+    { type:"credit", amount:149, label:"Monatliche Aufladung", date:"01.06.2026" },
+    { type:"debit", amount:159, label:"Botox Glabella", date:"28.05.2026" },
+    { type:"debit", amount:30, label:"Anzahlung Termin 04.06", date:"02.06.2026" }
+  ];
+  renderTxns(); renderWaitlist(); resetWizard();
+  // Reset appt statuses
+  renderLanes();
+  closePanel();
+  state.demo=1; document.getElementById('demoNum').textContent=1; document.getElementById('demoName').textContent=demos[0].name;
+  switchView('patient'); appNav('home');
+  showToast('Demo zurückgesetzt ↺');
+}
+
+// ─── ICONS ───
+function refreshIcons(){ try{ lucide.createIcons(); }catch(e){} }
+
+// ─── INIT ───
+function init(){
+  buildParticles();
+  renderServices('alle'); renderWeek(); renderSlots(); setPay('card');
+  renderHistory(); renderTxns(); refreshWallet();
+  renderLanes(); renderWaitlist();
+  initWalletTilt();
+  refreshIcons();
+}
+init();
+</script>
+</body>
+</html>
